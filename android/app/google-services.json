@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "403075065830",
+    "project_id": "terminal-assessment-2",
+    "storage_bucket": "terminal-assessment-2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:403075065830:android:f85e99b3ad3c985f045827",
+        "android_client_info": {
+          "package_name": "com.example.fitness_tracker"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAQUUhBg_NhvP-hZjWJNBVpgAo5g7u8X2M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:403075065830:android:ec4e2eecefea9097045827",
+        "android_client_info": {
+          "package_name": "com.example.push_notification_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAQUUhBg_NhvP-hZjWJNBVpgAo5g7u8X2M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
