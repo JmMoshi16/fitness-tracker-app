@@ -5,9 +5,11 @@ import 'package:intl/intl.dart';
 import '../db/db_helper.dart';
 import '../models/models.dart';
 import 'workout_form_screen.dart';
+import 'workout_camera_screen.dart';
 import 'exercise_tips_screen.dart';
 import 'profile_screen.dart';
 import 'progress_screen.dart';
+import 'workout_detail_screen.dart';
 
 const kGreen = Color(0xFF8BC34A);
 const kDarkGreen = Color(0xFF558B2F);
@@ -545,7 +547,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           borderRadius: BorderRadius.circular(20),
           child: InkWell(
             borderRadius: BorderRadius.circular(20),
-            onTap: () => _openForm(workout: w),
+            onTap: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => WorkoutDetailScreen(workout: w)),
+              );
+              if (result == true) _loadWorkouts();
+            },
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Row(

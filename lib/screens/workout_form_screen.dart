@@ -1,7 +1,10 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../db/db_helper.dart';
 import '../models/models.dart';
+import 'workout_camera_screen.dart';
+import 'workout_timer_screen.dart';
 
 const kGreen = Color(0xFF8BC34A);
 const kDarkGreen = Color(0xFF558B2F);
@@ -23,6 +26,7 @@ class _WorkoutFormScreenState extends State<WorkoutFormScreen> {
   String _type = 'Cardio';
   String _date = DateFormat('yyyy-MM-dd').format(DateTime.now());
   bool _saving = false;
+  File? _photo;
 
   final _types = ['Cardio', 'Strength', 'Flexibility', 'HIIT', 'Sports', 'Other'];
 
@@ -53,6 +57,9 @@ class _WorkoutFormScreenState extends State<WorkoutFormScreen> {
       _notesCtrl.text = widget.workout!.notes;
       _type = widget.workout!.type;
       _date = widget.workout!.date;
+      if (widget.workout!.photoPath != null && widget.workout!.photoPath!.isNotEmpty) {
+        _photo = File(widget.workout!.photoPath!);
+      }
     }
   }
 
@@ -90,6 +97,7 @@ class _WorkoutFormScreenState extends State<WorkoutFormScreen> {
         durationMinutes: int.parse(_durationCtrl.text.trim()),
         notes: _notesCtrl.text.trim(),
         date: _date,
+        photoPath: _photo?.path ?? widget.workout?.photoPath ?? '',
       );
       if (widget.workout == null) {
         await DBHelper.insertWorkout(w);
@@ -264,6 +272,80 @@ class _WorkoutFormScreenState extends State<WorkoutFormScreen> {
                       ),
                     ),
                     const SizedBox(height: 28),
+
+                    // Timer button
+                    GestureDetector(
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WorkoutTimerScreen())),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 3))],
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.timer_rounded, color: Colors.orange, size: 20),
+                            SizedBox(width: 10),
+                            Text('Start Workout Timer', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 14)),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Camera proof button
+                    GestureDetector(
+                      onTap: () async {
+                        final result = await Navigator.push<File>(
+                          context,
+                          MaterialPageRoute(builder: (_) => const WorkoutCameraScreen()),
+                        );
+                        if (result != null) setState(() => _photo = result);
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 3))],
+                        ),
+                        child: _photo == null
+                            ? const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 14),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.camera_alt_rounded, color: kGreen, size: 20),
+                                    SizedBox(width: 10),
+                                    Text('Add Workout Photo Proof', style: TextStyle(color: kGreen, fontWeight: FontWeight.bold, fontSize: 14)),
+                                  ],
+                                ),
+                              )
+                            : Stack(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(14),
+                                    child: Image.file(_photo!, width: double.infinity, height: 180, fit: BoxFit.cover),
+                                  ),
+                                  Positioned(
+                                    top: 8, right: 8,
+                                    child: GestureDetector(
+                                      onTap: () => setState(() => _photo = null),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(6),
+                                        decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                                        child: const Icon(Icons.close, color: Colors.white, size: 16),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
 
                     SizedBox(
                       width: double.infinity,

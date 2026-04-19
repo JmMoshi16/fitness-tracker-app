@@ -33,6 +33,7 @@ class _LoginScreenState extends State<LoginScreen> {
       final user = await DBHelper.loginUser(_emailCtrl.text.trim(), _passCtrl.text.trim());
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('username', user.username);
+      await prefs.setString('email', user.email);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

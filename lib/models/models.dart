@@ -24,6 +24,7 @@ class Workout {
   int durationMinutes;
   String notes;
   String date;
+  String? photoPath;
 
   Workout({
     this.id,
@@ -33,6 +34,7 @@ class Workout {
     required this.durationMinutes,
     required this.notes,
     required this.date,
+    this.photoPath,
   });
 
   Map<String, dynamic> toMap() => {
@@ -42,6 +44,7 @@ class Workout {
         'durationMinutes': durationMinutes,
         'notes': notes,
         'date': date,
+        'photoPath': photoPath ?? '',
       };
 
   factory Workout.fromDoc(DocumentSnapshot doc) => Workout(
@@ -52,5 +55,6 @@ class Workout {
         durationMinutes: doc['durationMinutes'],
         notes: doc['notes'],
         date: doc['date'],
+        photoPath: doc.data().toString().contains('photoPath') ? doc['photoPath'] : '',
       );
 }

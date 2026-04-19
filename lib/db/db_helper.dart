@@ -25,7 +25,7 @@ class DBHelper {
   static String? get currentUid => _auth.currentUser?.uid;
 
   static Future<UserModel?> getCurrentUser() async {
-    final uid = currentUid;
+    final uid = _auth.currentUser?.uid;
     if (uid == null) return null;
     final doc = await _db.collection('users').doc(uid).get();
     return doc.exists ? UserModel.fromDoc(doc) : null;

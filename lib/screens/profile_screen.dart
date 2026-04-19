@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../db/db_helper.dart';
 import '../models/models.dart';
@@ -41,12 +42,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _loadProfile() async {
     setState(() => _error = null);
     try {
+      final firebaseUser = await FirebaseAuth.instance
+          .authStateChanges()
+          .firstWhere((u) => u != null, orElse: () => null);
+
+      if (firebaseUser == null) {
+        // Fallback: load from SharedPreferences
+        final prefs = await SharedPreferences.getInstance();
+        final username = prefs.getString('username') ?? 'User';
+        final email = prefs.getString('email') ?? '';
+        if (mounted) {
+          setState(() {
+            _user = UserModel(uid: '', username: username, email: email);
+            _workouts = [];
+            _userCtrl.text = username;
+            _emailCtrl.text = email;
+          });
+        }
+        return;
+      }
+
       final user = await DBHelper.getCurrentUser();
-      final uid = DBHelper.currentUid;
-      final workouts = uid != null ? await DBHelper.getWorkouts(uid) : <Workout>[];
+      final workouts = user != null ? await DBHelper.getWorkouts(firebaseUser.uid) : <Workout>[];
       if (mounted) {
         if (user == null) {
-          setState(() => _error = 'Could not load profile. Please try again.');
+          // Fallback to SharedPreferences
+          final prefs = await SharedPreferences.getInstance();
+          final username = prefs.getString('username') ?? 'User';
+          final email = prefs.getString('email') ?? firebaseUser.email ?? '';
+          setState(() {
+            _user = UserModel(uid: firebaseUser.uid, username: username, email: email);
+            _workouts = [];
+            _userCtrl.text = username;
+            _emailCtrl.text = email;
+          });
           return;
         }
         setState(() {
