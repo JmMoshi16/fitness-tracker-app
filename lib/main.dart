@@ -3,19 +3,25 @@ import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'providers/workout_provider.dart';
+import 'theme/app_theme.dart';
+import 'theme/theme_provider.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/step_counter_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: Colors.transparent,
-    statusBarIconBrightness: Brightness.light,
-    statusBarBrightness: Brightness.dark,
-  ));
+  await initNotifications();
+  // Enable Firestore offline persistence
+  FirebaseFirestore.instance.settings = const Settings(
+    persistenceEnabled: true,
+    cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+  );
+  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   runApp(const FitTrackerApp());
 }
 
@@ -27,45 +33,17 @@ class FitTrackerApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => WorkoutProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
       ],
-      child: MaterialApp(
-        title: 'FitTracker',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          useMaterial3: true,
-          fontFamily: 'Roboto',
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF8BC34A),
-            primary: const Color(0xFF8BC34A),
-            secondary: const Color(0xFF558B2F),
-            surface: const Color(0xFFF4F6F9),
-          ),
-          scaffoldBackgroundColor: const Color(0xFFF4F6F9),
-          appBarTheme: const AppBarTheme(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            iconTheme: IconThemeData(color: Color(0xFF212121)),
-            titleTextStyle: TextStyle(
-              color: Color(0xFF212121),
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          cardTheme: CardThemeData(
-            elevation: 0,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            color: Colors.white,
-          ),
-          elevatedButtonTheme: ElevatedButtonThemeData(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF8BC34A),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              elevation: 0,
-            ),
-          ),
+      child: Consumer<ThemeProvider>(
+        builder: (_, themeProvider, __) => MaterialApp(
+          title: 'FitTracker',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light(),
+          darkTheme: AppTheme.dark(),
+          themeMode: themeProvider.themeMode,
+          home: const _AppEntry(),
         ),
-        home: const _AppEntry(),
       ),
     );
   }

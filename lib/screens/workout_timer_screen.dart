@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/services.dart';
 
 const kGreen = Color(0xFF8BC34A);
 const kDarkGreen = Color(0xFF558B2F);
@@ -13,7 +13,6 @@ class WorkoutTimerScreen extends StatefulWidget {
 }
 
 class _WorkoutTimerScreenState extends State<WorkoutTimerScreen> with TickerProviderStateMixin {
-  final _audio = AudioPlayer();
 
   // Settings
   int _workSeconds = 30;
@@ -37,11 +36,9 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen> with TickerProv
     _pulseCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 800))
       ..repeat(reverse: true);
   }
-
   @override
   void dispose() {
     _timer?.cancel();
-    _audio.dispose();
     _pulseCtrl.dispose();
     super.dispose();
   }
@@ -68,11 +65,7 @@ class _WorkoutTimerScreenState extends State<WorkoutTimerScreen> with TickerProv
   }
 
   Future<void> _playBeep({bool isEnd = false}) async {
-    await _audio.play(AssetSource(isEnd ? 'sounds/finish.mp3' : 'sounds/beep.mp3'))
-        .catchError((_) async {
-      // fallback: system sound
-      await _audio.play(AssetSource('sounds/beep.mp3')).catchError((_) {});
-    });
+    SystemSound.play(SystemSoundType.alert);
   }
 
   void _tick() {

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 const kGreen = Color(0xFF8BC34A);
 const kDarkGreen = Color(0xFF558B2F);

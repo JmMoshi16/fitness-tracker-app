@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
 import '../db/db_helper.dart';
 import '../models/models.dart';
-
-const kGreen = Color(0xFF8BC34A);
-const kDarkGreen = Color(0xFF558B2F);
-const kDeepDark = Color(0xFF1A1A2E);
+import '../theme/app_theme.dart';
+import '../theme/theme_provider.dart';
+import '../widgets/components.dart';
 
 class ProfileScreen extends StatefulWidget {
   final VoidCallback? onDataChanged;
@@ -42,12 +42,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _loadProfile() async {
     setState(() => _error = null);
     try {
-      final firebaseUser = await FirebaseAuth.instance
-          .authStateChanges()
-          .firstWhere((u) => u != null, orElse: () => null);
+      final firebaseUser = FirebaseAuth.instance.currentUser;
 
       if (firebaseUser == null) {
-        // Fallback: load from SharedPreferences
         final prefs = await SharedPreferences.getInstance();
         final username = prefs.getString('username') ?? 'User';
         final email = prefs.getString('email') ?? '';
@@ -66,7 +63,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final workouts = user != null ? await DBHelper.getWorkouts(firebaseUser.uid) : <Workout>[];
       if (mounted) {
         if (user == null) {
-          // Fallback to SharedPreferences
           final prefs = await SharedPreferences.getInstance();
           final username = prefs.getString('username') ?? 'User';
           final email = prefs.getString('email') ?? firebaseUser.email ?? '';
@@ -104,12 +100,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         setState(() { _editing = false; _saving = false; });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Row(children: [
-              Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
-              SizedBox(width: 8),
-              Text('Profile updated successfully'),
-            ]),
-            backgroundColor: kGreen,
+            content: const Text('Profile updated successfully', style: TextStyle(color: Colors.white)),
+            backgroundColor: kSuccess,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
@@ -119,7 +111,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (mounted) {
         setState(() => _saving = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Error: $e'), backgroundColor: kError),
         );
       }
     }
@@ -129,6 +121,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
+        backgroundColor: Theme.of(context).cardColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Logout', style: TextStyle(fontWeight: FontWeight.bold)),
         content: const Text('Are you sure you want to logout?'),
@@ -136,7 +129,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white, elevation: 0),
+            style: ElevatedButton.styleFrom(backgroundColor: kError, foregroundColor: Colors.white, elevation: 0),
             child: const Text('Logout'),
           ),
         ],
@@ -151,36 +144,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    
     if (_error != null) {
       return Scaffold(
-        backgroundColor: const Color(0xFFF4F6F9),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.error_outline_rounded, size: 56, color: Colors.red),
-                const SizedBox(height: 16),
-                Text(_error!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey)),
-                const SizedBox(height: 20),
-                ElevatedButton.icon(
-                  onPressed: _loadProfile,
-                  icon: const Icon(Icons.refresh_rounded),
-                  label: const Text('Retry'),
-                  style: ElevatedButton.styleFrom(backgroundColor: kGreen, foregroundColor: Colors.white),
-                ),
-              ],
-            ),
-          ),
+        backgroundColor: isDark ? kDarkBg : kLightBg,
+        body: EmptyState(
+          icon: Icons.error_outline_rounded,
+          title: 'Error Loading Profile',
+          subtitle: _error!,
+          actionLabel: 'Retry',
+          onAction: _loadProfile,
         ),
       );
     }
 
     if (_user == null) {
-      return const Scaffold(
-        backgroundColor: Color(0xFFF4F6F9),
-        body: Center(child: CircularProgressIndicator(color: kGreen)),
+      return Scaffold(
+        backgroundColor: isDark ? kDarkBg : kLightBg,
+        body: const Center(child: CircularProgressIndicator(color: kOrange)),
       );
     }
 
@@ -189,25 +172,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final streak = _calcStreak();
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light,
+      value: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF4F6F9),
+        backgroundColor: isDark ? kDarkBg : kLightBg,
         body: CustomScrollView(
           slivers: [
-            // ── App bar / hero ──────────────────────────────────────────────
             SliverAppBar(
               expandedHeight: 260,
               pinned: true,
-              backgroundColor: kDeepDark,
+              backgroundColor: isDark ? kDarkSurface : kLightSurface,
               automaticallyImplyLeading: false,
-              systemOverlayStyle: SystemUiOverlayStyle.light,
               actions: [
                 if (!_editing)
                   IconButton(
                     icon: Container(
                       padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(color: Colors.white.withOpacity(0.12), borderRadius: BorderRadius.circular(10)),
-                      child: const Icon(Icons.edit_rounded, color: Colors.white, size: 18),
+                      decoration: BoxDecoration(
+                        color: kOrange.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.edit_rounded, color: kOrange, size: 18),
                     ),
                     onPressed: () => setState(() => _editing = true),
                   )
@@ -215,8 +199,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   IconButton(
                     icon: Container(
                       padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(color: Colors.white.withOpacity(0.12), borderRadius: BorderRadius.circular(10)),
-                      child: const Icon(Icons.close_rounded, color: Colors.white, size: 18),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(Icons.close_rounded, color: isDark ? kDarkText : kLightText, size: 18),
                     ),
                     onPressed: () {
                       _userCtrl.text = _user!.username;
@@ -224,22 +211,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       setState(() => _editing = false);
                     },
                   ),
-                IconButton(
-                  icon: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(color: Colors.white.withOpacity(0.12), borderRadius: BorderRadius.circular(10)),
-                    child: const Icon(Icons.logout_rounded, color: Colors.white70, size: 18),
-                  ),
-                  onPressed: _logout,
-                ),
-                const SizedBox(width: 4),
+                const SizedBox(width: 8),
               ],
               flexibleSpace: FlexibleSpaceBar(
-                collapseMode: CollapseMode.parallax,
                 background: Container(
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [kDeepDark, Color(0xFF16213E)],
+                      colors: [kOrange, kOrangeDark],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -248,52 +226,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const SizedBox(height: 48),
+                        const SizedBox(height: 24),
                         // Avatar
                         Container(
-                          width: 90,
-                          height: 90,
+                          width: 80,
+                          height: 80,
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(colors: [kGreen, kDarkGreen]),
+                            color: Colors.white,
                             shape: BoxShape.circle,
-                            boxShadow: [BoxShadow(color: kGreen.withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 6))],
+                            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 20, offset: const Offset(0, 6))],
                           ),
                           child: Center(
                             child: Text(
                               _user!.username.isNotEmpty ? _user!.username[0].toUpperCase() : 'A',
-                              style: const TextStyle(color: Colors.white, fontSize: 38, fontWeight: FontWeight.bold),
+                              style: const TextStyle(color: kOrange, fontSize: 32, fontWeight: FontWeight.bold),
                             ),
                           ),
                         ),
-                        const SizedBox(height: 14),
-                        Text(_user!.username,
-                            style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 4),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.email_outlined, color: Colors.white38, size: 13),
-                            const SizedBox(width: 4),
-                            Text(_user!.email, style: const TextStyle(color: Colors.white54, fontSize: 13)),
-                          ],
-                        ),
                         const SizedBox(height: 12),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: kGreen.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: kGreen.withOpacity(0.4)),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.local_fire_department_rounded, color: kGreen, size: 14),
-                              const SizedBox(width: 5),
-                              Text('$streak day streak', style: const TextStyle(color: kGreen, fontSize: 12, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        ),
+                        Text(_user!.username, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 4),
+                        Text(_user!.email, style: const TextStyle(color: Colors.white70, fontSize: 13)),
                       ],
                     ),
                   ),
@@ -302,118 +255,135 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
 
             SliverToBoxAdapter(
-              child: Column(
-                children: [
-                  const SizedBox(height: 16),
-
-                  // ── Stats row ─────────────────────────────────────────────
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Stats
+                    Row(
                       children: [
-                        Expanded(child: _statCard('${_workouts.length}', 'Workouts', Icons.fitness_center_rounded, kGreen)),
-                        const SizedBox(width: 10),
-                        Expanded(child: _statCard(totalHours, 'Hours', Icons.timer_rounded, Colors.orange)),
-                        const SizedBox(width: 10),
-                        Expanded(child: _statCard('$streak', 'Day Streak', Icons.local_fire_department_rounded, Colors.red)),
+                        StatTile(value: '${_workouts.length}', label: 'Workouts', icon: Icons.fitness_center_rounded, color: kOrange, isCompact: true),
+                        const SizedBox(width: 12),
+                        StatTile(value: totalHours, label: 'Hours', icon: Icons.timer_rounded, color: kInfo, isCompact: true),
+                        const SizedBox(width: 12),
+                        StatTile(value: '$streak', label: 'Streak', icon: Icons.local_fire_department_rounded, color: kError, isCompact: true),
                       ],
                     ),
-                  ),
-                  const SizedBox(height: 20),
+                    const SizedBox(height: 32),
 
-                  // ── Account info ──────────────────────────────────────────
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: _sectionCard(
-                      title: 'Account Info',
-                      icon: Icons.manage_accounts_rounded,
-                      iconColor: kGreen,
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
-                          children: [
-                            _profileField(
-                              controller: _userCtrl,
-                              label: 'Username',
-                              icon: Icons.person_outline_rounded,
-                              enabled: _editing,
-                              validator: (v) => v!.trim().length < 3 ? 'Min 3 characters' : null,
-                            ),
-                            Divider(height: 1, color: Colors.grey.shade100),
-                            _profileField(
-                              controller: _emailCtrl,
-                              label: 'Email Address',
-                              icon: Icons.email_outlined,
-                              enabled: _editing,
-                              keyboardType: TextInputType.emailAddress,
-                              validator: (v) => !v!.contains('@') ? 'Enter valid email' : null,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  if (_editing) ...[
-                    const SizedBox(height: 14),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: SizedBox(
-                        width: double.infinity,
-                        height: 54,
-                        child: ElevatedButton(
-                          onPressed: _saving ? null : _save,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: kGreen,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                            elevation: 0,
+                    // Account Info Form
+                    if (_editing) ...[
+                      SectionHeader(title: 'Account Settings'),
+                      const SizedBox(height: 16),
+                      FitCard(
+                        padding: const EdgeInsets.all(16),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            children: [
+                              FitInput(
+                                controller: _userCtrl,
+                                label: 'Username',
+                                prefixIcon: Icons.person_outline_rounded,
+                                validator: (v) => v!.trim().length < 3 ? 'Min 3 characters' : null,
+                              ),
+                              const SizedBox(height: 12),
+                              FitInput(
+                                controller: _emailCtrl,
+                                label: 'Email Address',
+                                prefixIcon: Icons.email_outlined,
+                                keyboardType: TextInputType.emailAddress,
+                                validator: (v) => !v!.contains('@') ? 'Enter valid email' : null,
+                              ),
+                              const SizedBox(height: 16),
+                              FitButton(
+                                label: 'Save Changes',
+                                icon: Icons.check_rounded,
+                                onTap: _save,
+                                isLoading: _saving,
+                              ),
+                            ],
                           ),
-                          child: _saving
-                              ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                              : const Text('Save Changes', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 32),
+                    ],
 
-                  const SizedBox(height: 20),
-
-                  // ── Workout type breakdown ────────────────────────────────
-                  if (_workouts.isNotEmpty) ...[
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: _sectionCard(
-                        title: 'Activity Breakdown',
-                        icon: Icons.pie_chart_rounded,
-                        iconColor: Colors.purple,
-                        child: Column(children: _buildBreakdown()),
+                    // App Settings
+                    SectionHeader(title: 'App Settings'),
+                    const SizedBox(height: 16),
+                    FitCard(
+                      padding: EdgeInsets.zero,
+                      child: Column(
+                        children: [
+                          _buildSettingTile(
+                            icon: Icons.dark_mode_rounded,
+                            color: kOrange,
+                            title: 'Dark Mode',
+                            trailing: Switch(
+                              value: themeProvider.isDark,
+                              onChanged: (_) => themeProvider.toggle(),
+                              activeColor: kOrange,
+                            ),
+                          ),
+                          const Divider(height: 1),
+                          _buildSettingTile(
+                            icon: Icons.flag_rounded,
+                            color: kSuccess,
+                            title: 'Workout Goals',
+                            onTap: () {
+                              HapticFeedback.lightImpact();
+                              // Implement goal settings navigation
+                            },
+                          ),
+                          const Divider(height: 1),
+                          _buildSettingTile(
+                            icon: Icons.download_rounded,
+                            color: kInfo,
+                            title: 'Export Data',
+                            onTap: () {
+                              HapticFeedback.lightImpact();
+                              // Navigate to data export
+                            },
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 20),
-                  ],
+                    const SizedBox(height: 32),
 
-                  // ── Recent workouts ───────────────────────────────────────
-                  if (_workouts.isNotEmpty) ...[
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: _sectionCard(
-                        title: 'Recent Activity',
-                        icon: Icons.history_rounded,
-                        iconColor: Colors.orange,
-                        child: Column(
-                          children: _workouts.take(5).map((w) => _recentTile(w)).toList(),
-                        ),
-                      ),
+                    // Logout
+                    FitButton(
+                      label: 'Logout',
+                      icon: Icons.logout_rounded,
+                      onTap: _logout,
+                      isSecondary: true,
                     ),
+                    const SizedBox(height: 40),
                   ],
-
-                  const SizedBox(height: 100),
-                ],
+                ),
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildSettingTile({required IconData icon, required Color color, required String title, Widget? trailing, VoidCallback? onTap}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return ListTile(
+      onTap: onTap,
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.12),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(icon, color: color, size: 20),
+      ),
+      title: Text(title, style: TextStyle(color: isDark ? kDarkText : kLightText, fontWeight: FontWeight.w600)),
+      trailing: trailing ?? Icon(Icons.chevron_right_rounded, color: isDark ? kDarkSubtext : kLightSubtext),
     );
   }
 
@@ -433,172 +403,5 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     }
     return streak;
-  }
-
-  List<Widget> _buildBreakdown() {
-    final types = ['Cardio', 'Strength', 'Flexibility', 'HIIT', 'Sports', 'Other'];
-    final colors = [const Color(0xFFEF5350), const Color(0xFF42A5F5), const Color(0xFF66BB6A),
-                    const Color(0xFFFF7043), const Color(0xFFAB47BC), const Color(0xFF78909C)];
-    final total = _workouts.length;
-    return types.asMap().entries.where((e) {
-      return _workouts.any((w) => w.type == e.value);
-    }).map((e) {
-      final count = _workouts.where((w) => w.type == e.value).length;
-      final ratio = count / total;
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(e.value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                Text('$count sessions · ${(ratio * 100).round()}%',
-                    style: const TextStyle(fontSize: 12, color: Colors.grey)),
-              ],
-            ),
-            const SizedBox(height: 6),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: LinearProgressIndicator(
-                value: ratio,
-                backgroundColor: colors[e.key].withOpacity(0.12),
-                valueColor: AlwaysStoppedAnimation<Color>(colors[e.key]),
-                minHeight: 7,
-              ),
-            ),
-          ],
-        ),
-      );
-    }).toList();
-  }
-
-  Widget _statCard(String value, String label, IconData icon, Color color) => Container(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
-        ),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
-              child: Icon(icon, color: color, size: 20),
-            ),
-            const SizedBox(height: 8),
-            Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kDeepDark)),
-            const SizedBox(height: 2),
-            Text(label, style: const TextStyle(color: Colors.grey, fontSize: 11), textAlign: TextAlign.center),
-          ],
-        ),
-      );
-
-  Widget _sectionCard({required String title, required IconData icon, required Color iconColor, required Widget child}) =>
-      Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 3))],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(color: iconColor.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-                    child: Icon(icon, color: iconColor, size: 18),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: kDeepDark)),
-                ],
-              ),
-            ),
-            Divider(height: 1, color: Colors.grey.shade100),
-            Padding(padding: const EdgeInsets.all(16), child: child),
-          ],
-        ),
-      );
-
-  Widget _recentTile(Workout w) {
-    final colors = {
-      'Cardio': const Color(0xFFEF5350), 'Strength': const Color(0xFF42A5F5),
-      'Flexibility': const Color(0xFF66BB6A), 'HIIT': const Color(0xFFFF7043),
-      'Sports': const Color(0xFFAB47BC),
-    };
-    final color = colors[w.type] ?? const Color(0xFF78909C);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(colors: [color.withOpacity(0.7), color]),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(_typeIcon(w.type), color: Colors.white, size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(w.title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: kDeepDark)),
-                Text('${w.type} · ${w.durationMinutes} min', style: const TextStyle(color: Colors.grey, fontSize: 12)),
-              ],
-            ),
-          ),
-          Text(w.date, style: const TextStyle(color: Colors.grey, fontSize: 11)),
-        ],
-      ),
-    );
-  }
-
-  IconData _typeIcon(String type) {
-    switch (type) {
-      case 'Cardio': return Icons.directions_run_rounded;
-      case 'Strength': return Icons.fitness_center_rounded;
-      case 'Flexibility': return Icons.self_improvement_rounded;
-      case 'HIIT': return Icons.flash_on_rounded;
-      case 'Sports': return Icons.sports_rounded;
-      default: return Icons.sports_gymnastics_rounded;
-    }
-  }
-
-  Widget _profileField({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    bool enabled = true,
-    TextInputType keyboardType = TextInputType.text,
-    String? Function(String?)? validator,
-  }) {
-    return TextFormField(
-      controller: controller,
-      enabled: enabled,
-      keyboardType: keyboardType,
-      style: const TextStyle(fontWeight: FontWeight.w500, color: kDeepDark),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: TextStyle(color: enabled ? kGreen : Colors.grey, fontSize: 13),
-        prefixIcon: Icon(icon, color: enabled ? kGreen : Colors.grey.shade400, size: 20),
-        border: InputBorder.none,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        disabledBorder: InputBorder.none,
-        enabledBorder: InputBorder.none,
-        focusedBorder: InputBorder.none,
-        filled: enabled,
-        fillColor: enabled ? kGreen.withOpacity(0.04) : null,
-      ),
-      validator: validator,
-    );
   }
 }

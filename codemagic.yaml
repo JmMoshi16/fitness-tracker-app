@@ -1,0 +1,130 @@
+workflows:
+  # ═══════════════════════════════════════════════════════════════
+  # FREE iOS Debug Build (No Apple Developer Account Required)
+  # ═══════════════════════════════════════════════════════════════
+  ios-debug-free:
+    name: iOS Debug (FREE - No Signing)
+    max_build_duration: 60
+    instance_type: mac_mini_m1
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+      vars:
+        # Change this to your email for build notifications
+        NOTIFICATION_EMAIL: "josemanueljurado318@gmail.com"
+    
+    scripts:
+      - name: Set up Flutter
+        script: |
+          flutter --version
+          flutter doctor
+      
+      - name: Get Flutter packages
+        script: |
+          flutter pub get
+      
+      - name: Install CocoaPods dependencies
+        script: |
+          cd ios
+          pod install
+      
+      - name: Build iOS Debug (No Signing)
+        script: |
+          flutter build ios --debug --no-codesign
+      
+      - name: Create IPA manually
+        script: |
+          cd build/ios/iphoneos
+          mkdir -p Payload
+          cp -r Runner.app Payload/
+          zip -r fitness_tracker_debug.ipa Payload
+          mv fitness_tracker_debug.ipa ../../..
+    
+    artifacts:
+      - fitness_tracker_debug.ipa
+      - build/ios/iphoneos/Runner.app
+    
+    publishing:
+      email:
+        recipients:
+          - $NOTIFICATION_EMAIL
+        notify:
+          success: true
+          failure: true
+
+  # ═══════════════════════════════════════════════════════════════
+  # Android Debug Build (Bonus - Also Free)
+  # ═══════════════════════════════════════════════════════════════
+  android-debug:
+    name: Android Debug APK
+    max_build_duration: 60
+    instance_type: linux_x2
+    environment:
+      flutter: stable
+      vars:
+        NOTIFICATION_EMAIL: "josemanueljurado318@gmail.com"
+    
+    scripts:
+      - name: Get Flutter packages
+        script: flutter pub get
+      
+      - name: Build Android APK
+        script: flutter build apk --debug
+    
+    artifacts:
+      - build/app/outputs/flutter-apk/app-debug.apk
+    
+    publishing:
+      email:
+        recipients:
+          - $NOTIFICATION_EMAIL
+        notify:
+          success: true
+          failure: true
+
+  # ═══════════════════════════════════════════════════════════════
+  # iOS Release Build (Requires Apple Developer Account - $99/year)
+  # ═══════════════════════════════════════════════════════════════
+  ios-release-signed:
+    name: iOS Release (Requires Apple Dev Account)
+    max_build_duration: 60
+    instance_type: mac_mini_m1
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.yourname.fitnesstracker
+      vars:
+        APP_STORE_CONNECT_ISSUER_ID: Encrypted(...)
+        APP_STORE_CONNECT_KEY_IDENTIFIER: Encrypted(...)
+        APP_STORE_CONNECT_PRIVATE_KEY: Encrypted(...)
+        CERTIFICATE_PRIVATE_KEY: Encrypted(...)
+    
+    scripts:
+      - name: Get Flutter packages
+        script: flutter pub get
+      
+      - name: Install CocoaPods
+        script: |
+          cd ios
+          pod install
+      
+      - name: Build iOS Release
+        script: |
+          flutter build ipa --release \
+            --export-options-plist=$HOME/export_options.plist
+    
+    artifacts:
+      - build/ios/ipa/*.ipa
+    
+    publishing:
+      app_store_connect:
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+      email:
+        recipients:
+          - your@email.com

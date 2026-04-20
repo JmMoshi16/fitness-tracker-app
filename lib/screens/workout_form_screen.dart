@@ -1,13 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../db/db_helper.dart';
 import '../models/models.dart';
+import '../theme/app_theme.dart';
+import '../widgets/components.dart';
 import 'workout_camera_screen.dart';
-import 'workout_timer_screen.dart';
-
-const kGreen = Color(0xFF8BC34A);
-const kDarkGreen = Color(0xFF558B2F);
 
 class WorkoutFormScreen extends StatefulWidget {
   final String userId;
@@ -29,24 +28,6 @@ class _WorkoutFormScreenState extends State<WorkoutFormScreen> {
   File? _photo;
 
   final _types = ['Cardio', 'Strength', 'Flexibility', 'HIIT', 'Sports', 'Other'];
-
-  final _typeIcons = {
-    'Cardio': Icons.directions_run,
-    'Strength': Icons.fitness_center,
-    'Flexibility': Icons.self_improvement,
-    'HIIT': Icons.flash_on,
-    'Sports': Icons.sports,
-    'Other': Icons.sports_gymnastics,
-  };
-
-  final _typeColors = {
-    'Cardio': Colors.red,
-    'Strength': Colors.blue,
-    'Flexibility': Colors.green,
-    'HIIT': Colors.orange,
-    'Sports': Colors.purple,
-    'Other': Colors.grey,
-  };
 
   @override
   void initState() {
@@ -78,7 +59,9 @@ class _WorkoutFormScreenState extends State<WorkoutFormScreen> {
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
       builder: (ctx, child) => Theme(
-        data: Theme.of(ctx).copyWith(colorScheme: const ColorScheme.light(primary: kGreen)),
+        data: Theme.of(ctx).copyWith(
+          colorScheme: const ColorScheme.light(primary: kOrange),
+        ),
         child: child!,
       ),
     );
@@ -108,7 +91,7 @@ class _WorkoutFormScreenState extends State<WorkoutFormScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Error: $e'), backgroundColor: kError),
         );
       }
     } finally {
@@ -118,290 +101,235 @@ class _WorkoutFormScreenState extends State<WorkoutFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isEdit = widget.workout != null;
-    final activeColor = _typeColors[_type] ?? kGreen;
+    final activeColor = AppTheme.getWorkoutColor(_type);
+    final activeIcon = AppTheme.getWorkoutIcon(_type);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F4F0),
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 140,
-            pinned: true,
-            backgroundColor: activeColor,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 18),
-              onPressed: () => Navigator.pop(context),
-            ),
-            flexibleSpace: FlexibleSpaceBar(
-              title: Text(
-                isEdit ? 'Edit Workout' : 'Log Workout',
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
-              ),
-              background: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [activeColor, activeColor.withOpacity(0.7)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 24),
-                    child: Icon(_typeIcons[_type], size: 80, color: Colors.white.withOpacity(0.2)),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Type selector
-                    const Text('Workout Type', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                    const SizedBox(height: 12),
-                    GridView.count(
-                      crossAxisCount: 3,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      crossAxisSpacing: 10,
-                      mainAxisSpacing: 10,
-                      childAspectRatio: 1.4,
-                      children: _types.map((t) {
-                        final selected = _type == t;
-                        final color = _typeColors[t]!;
-                        return GestureDetector(
-                          onTap: () => setState(() => _type = t),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            decoration: BoxDecoration(
-                              gradient: selected
-                                  ? LinearGradient(colors: [color.withOpacity(0.8), color], begin: Alignment.topLeft, end: Alignment.bottomRight)
-                                  : null,
-                              color: selected ? null : Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: selected
-                                  ? [BoxShadow(color: color.withOpacity(0.4), blurRadius: 8, offset: const Offset(0, 3))]
-                                  : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6)],
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(_typeIcons[t], color: selected ? Colors.white : color, size: 24),
-                                const SizedBox(height: 4),
-                                Text(t,
-                                    style: TextStyle(
-                                        fontSize: 11,
-                                        color: selected ? Colors.white : Colors.grey,
-                                        fontWeight: selected ? FontWeight.bold : FontWeight.normal)),
-                              ],
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Title
-                    _sectionLabel('Workout Title'),
-                    _inputCard(
-                      child: TextFormField(
-                        controller: _titleCtrl,
-                        decoration: _inputDeco('e.g. Morning Run', Icons.title_rounded),
-                        validator: (v) => v!.trim().isEmpty ? 'Enter a title' : null,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Duration
-                    _sectionLabel('Duration'),
-                    _inputCard(
-                      child: TextFormField(
-                        controller: _durationCtrl,
-                        keyboardType: TextInputType.number,
-                        decoration: _inputDeco('Minutes', Icons.timer_rounded),
-                        validator: (v) {
-                          if (v!.trim().isEmpty) return 'Enter duration';
-                          final n = int.tryParse(v.trim());
-                          if (n == null || n <= 0) return 'Enter valid minutes';
-                          return null;
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Date
-                    _sectionLabel('Date'),
-                    GestureDetector(
-                      onTap: _pickDate,
-                      child: _inputCard(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                          child: Row(
-                            children: [
-                              Icon(Icons.calendar_month_rounded, color: activeColor, size: 22),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  DateFormat('EEEE, MMMM d, yyyy').format(DateTime.parse(_date)),
-                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                                ),
+      appBar: AppBar(
+        title: Text(isEdit ? 'Edit Workout' : 'Log Workout'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SectionHeader(title: 'Workout Type'),
+                      const SizedBox(height: 16),
+                      GridView.count(
+                        crossAxisCount: 3,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
+                        childAspectRatio: 1.2,
+                        children: _types.map((t) {
+                          final selected = _type == t;
+                          final color = AppTheme.getWorkoutColor(t);
+                          return GestureDetector(
+                            onTap: () {
+                              HapticFeedback.lightImpact();
+                              setState(() => _type = t);
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              decoration: BoxDecoration(
+                                gradient: selected
+                                    ? LinearGradient(colors: [color.withOpacity(0.8), color], begin: Alignment.topLeft, end: Alignment.bottomRight)
+                                    : null,
+                                color: selected ? null : (isDark ? kDarkCard : kLightCard),
+                                borderRadius: BorderRadius.circular(16),
+                                border: selected ? null : Border.all(color: isDark ? kDarkBorder : kLightBorder),
+                                boxShadow: selected
+                                    ? [BoxShadow(color: color.withOpacity(0.4), blurRadius: 12, offset: const Offset(0, 4))]
+                                    : [],
                               ),
-                              Icon(Icons.chevron_right, color: Colors.grey.shade400),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Notes
-                    _sectionLabel('Notes (optional)'),
-                    _inputCard(
-                      child: TextFormField(
-                        controller: _notesCtrl,
-                        maxLines: 3,
-                        decoration: _inputDeco('Add any notes...', Icons.notes_rounded),
-                      ),
-                    ),
-                    const SizedBox(height: 28),
-
-                    // Timer button
-                    GestureDetector(
-                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WorkoutTimerScreen())),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(14),
-                          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 3))],
-                        ),
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.timer_rounded, color: Colors.orange, size: 20),
-                            SizedBox(width: 10),
-                            Text('Start Workout Timer', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 14)),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Camera proof button
-                    GestureDetector(
-                      onTap: () async {
-                        final result = await Navigator.push<File>(
-                          context,
-                          MaterialPageRoute(builder: (_) => const WorkoutCameraScreen()),
-                        );
-                        if (result != null) setState(() => _photo = result);
-                      },
-                      child: Container(
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(14),
-                          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 3))],
-                        ),
-                        child: _photo == null
-                            ? const Padding(
-                                padding: EdgeInsets.symmetric(vertical: 14),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.camera_alt_rounded, color: kGreen, size: 20),
-                                    SizedBox(width: 10),
-                                    Text('Add Workout Photo Proof', style: TextStyle(color: kGreen, fontWeight: FontWeight.bold, fontSize: 14)),
-                                  ],
-                                ),
-                              )
-                            : Stack(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(14),
-                                    child: Image.file(_photo!, width: double.infinity, height: 180, fit: BoxFit.cover),
-                                  ),
-                                  Positioned(
-                                    top: 8, right: 8,
-                                    child: GestureDetector(
-                                      onTap: () => setState(() => _photo = null),
-                                      child: Container(
-                                        padding: const EdgeInsets.all(6),
-                                        decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
-                                        child: const Icon(Icons.close, color: Colors.white, size: 16),
-                                      ),
+                                  Icon(AppTheme.getWorkoutIcon(t), color: selected ? Colors.white : color, size: 28),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    t,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: selected ? Colors.white : (isDark ? kDarkSubtext : kLightSubtext),
+                                      fontWeight: selected ? FontWeight.bold : FontWeight.w600,
                                     ),
                                   ),
                                 ],
                               ),
+                            ),
+                          );
+                        }).toList(),
                       ),
-                    ),
-                    const SizedBox(height: 14),
+                      const SizedBox(height: 32),
 
-                    SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: ElevatedButton(
-                        onPressed: _saving ? null : _save,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: activeColor,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                          elevation: 0,
-                        ),
-                        child: _saving
-                            ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
-                            : Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(isEdit ? Icons.save_rounded : Icons.add_circle_outline, color: Colors.white),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    isEdit ? 'Save Changes' : 'Log Workout',
-                                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-                                  ),
-                                ],
-                              ),
+                      SectionHeader(title: 'Details'),
+                      const SizedBox(height: 16),
+                      FitInput(
+                        controller: _titleCtrl,
+                        label: 'Workout Title',
+                        hint: 'e.g. Morning Run',
+                        prefixIcon: Icons.title_rounded,
+                        validator: (v) => v!.trim().isEmpty ? 'Enter a title' : null,
                       ),
-                    ),
-                    const SizedBox(height: 40),
-                  ],
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: FitInput(
+                              controller: _durationCtrl,
+                              label: 'Duration',
+                              hint: 'Minutes',
+                              keyboardType: TextInputType.number,
+                              prefixIcon: Icons.timer_rounded,
+                              validator: (v) {
+                                if (v!.trim().isEmpty) return 'Required';
+                                if (int.tryParse(v.trim()) == null) return 'Invalid';
+                                return null;
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: _pickDate,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                decoration: BoxDecoration(
+                                  color: isDark ? kDarkCard : kLightCard,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: isDark ? kDarkBorder : kLightBorder),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.calendar_month_rounded, color: kOrange, size: 20),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        DateFormat('MMM d, yyyy').format(DateTime.parse(_date)),
+                                        style: TextStyle(
+                                          color: isDark ? kDarkText : kLightText,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      FitInput(
+                        controller: _notesCtrl,
+                        label: 'Notes (Optional)',
+                        hint: 'How did it feel?',
+                        prefixIcon: Icons.notes_rounded,
+                        maxLines: 3,
+                      ),
+                      const SizedBox(height: 32),
+
+                      SectionHeader(title: 'Media'),
+                      const SizedBox(height: 16),
+                      GestureDetector(
+                        onTap: () async {
+                          HapticFeedback.mediumImpact();
+                          final result = await Navigator.push<File>(
+                            context,
+                            MaterialPageRoute(builder: (_) => const WorkoutCameraScreen()),
+                          );
+                          if (result != null) setState(() => _photo = result);
+                        },
+                        child: FitCard(
+                          padding: EdgeInsets.zero,
+                          showBorder: true,
+                          child: _photo == null
+                              ? Container(
+                                  height: 120,
+                                  width: double.infinity,
+                                  alignment: Alignment.center,
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: kOrange.withOpacity(0.12),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(Icons.camera_alt_rounded, color: kOrange, size: 28),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Text('Add Photo Proof', style: TextStyle(color: isDark ? kDarkSubtext : kLightSubtext, fontWeight: FontWeight.w600)),
+                                    ],
+                                  ),
+                                )
+                              : Stack(
+                                  children: [
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(20),
+                                      child: Image.file(_photo!, width: double.infinity, height: 200, fit: BoxFit.cover),
+                                    ),
+                                    Positioned(
+                                      top: 12, right: 12,
+                                      child: GestureDetector(
+                                        onTap: () => setState(() => _photo = null),
+                                        child: Container(
+                                          padding: const EdgeInsets.all(8),
+                                          decoration: BoxDecoration(color: Colors.black.withOpacity(0.7), shape: BoxShape.circle),
+                                          child: const Icon(Icons.close, color: Colors.white, size: 18),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                        ),
+                      ),
+                      const SizedBox(height: 40),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+            
+            // Sticky Bottom Panel
+            Container(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+              decoration: BoxDecoration(
+                color: isDark ? kDarkSurface : kLightSurface,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(isDark ? 0.4 : 0.05),
+                    blurRadius: 24,
+                    offset: const Offset(0, -8),
+                  )
+                ],
+              ),
+              child: FitButton(
+                label: isEdit ? 'Save Changes' : 'Create Workout',
+                icon: isEdit ? Icons.save_rounded : Icons.add_rounded,
+                isLoading: _saving,
+                onTap: _save,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
-
-  Widget _sectionLabel(String text) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Text(text, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF333333))),
-      );
-
-  Widget _inputCard({required Widget child}) => Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 3))],
-        ),
-        child: child,
-      );
-
-  InputDecoration _inputDeco(String hint, IconData icon) => InputDecoration(
-        hintText: hint,
-        hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
-        prefixIcon: Icon(icon, color: kGreen, size: 20),
-        border: InputBorder.none,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      );
 }
