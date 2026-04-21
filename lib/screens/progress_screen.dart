@@ -27,11 +27,17 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
   }
 
   Future<void> _loadPRs() async {
-    final uid = DBHelper.currentUid;
-    if (uid != null) {
-      final prs = await DBHelper.getPRRecords(uid);
-      if (mounted) setState(() { _prs = prs; _loadingPRs = false; });
-    } else {
+    if (!mounted) return;
+    setState(() => _loadingPRs = true);
+    try {
+      final uid = DBHelper.currentUid;
+      if (uid != null) {
+        final prs = await DBHelper.getPRRecords(uid);
+        if (mounted) setState(() { _prs = prs; _loadingPRs = false; });
+      } else {
+        if (mounted) setState(() => _loadingPRs = false);
+      }
+    } catch (_) {
       if (mounted) setState(() => _loadingPRs = false);
     }
   }

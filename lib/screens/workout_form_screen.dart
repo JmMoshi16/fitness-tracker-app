@@ -27,7 +27,7 @@ class _WorkoutFormScreenState extends State<WorkoutFormScreen> {
   bool _saving = false;
   File? _photo;
 
-  final _types = ['Cardio', 'Strength', 'Flexibility', 'HIIT', 'Sports', 'Other'];
+  final _types = ['Cardio', 'Strength', 'Running', 'Cycling', 'HIIT', 'Sports', 'Other'];
 
   @override
   void initState() {
@@ -127,13 +127,45 @@ class _WorkoutFormScreenState extends State<WorkoutFormScreen> {
                     children: [
                       SectionHeader(title: 'Workout Type'),
                       const SizedBox(height: 16),
+                      // Selected type banner
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 250),
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [activeColor.withOpacity(0.15), activeColor.withOpacity(0.05)],
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: activeColor.withOpacity(0.4)),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: activeColor.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Icon(activeIcon, color: activeColor, size: 20),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(_type, style: TextStyle(color: activeColor, fontWeight: FontWeight.w700, fontSize: 15)),
+                            const Spacer(),
+                            Text('Selected', style: TextStyle(color: activeColor.withOpacity(0.7), fontSize: 11, fontWeight: FontWeight.w500)),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
                       GridView.count(
-                        crossAxisCount: 3,
+                        crossAxisCount: 4,
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                        childAspectRatio: 1.2,
+                        crossAxisSpacing: 10,
+                        mainAxisSpacing: 10,
+                        childAspectRatio: 0.85,
                         children: _types.map((t) {
                           final selected = _type == t;
                           final color = AppTheme.getWorkoutColor(t);
@@ -146,27 +178,33 @@ class _WorkoutFormScreenState extends State<WorkoutFormScreen> {
                               duration: const Duration(milliseconds: 200),
                               decoration: BoxDecoration(
                                 gradient: selected
-                                    ? LinearGradient(colors: [color.withOpacity(0.8), color], begin: Alignment.topLeft, end: Alignment.bottomRight)
+                                    ? LinearGradient(colors: [color.withOpacity(0.85), color], begin: Alignment.topLeft, end: Alignment.bottomRight)
                                     : null,
                                 color: selected ? null : (isDark ? kDarkCard : kLightCard),
-                                borderRadius: BorderRadius.circular(16),
-                                border: selected ? null : Border.all(color: isDark ? kDarkBorder : kLightBorder),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: selected ? color : (isDark ? kDarkBorder : kLightBorder),
+                                  width: selected ? 1.5 : 1,
+                                ),
                                 boxShadow: selected
-                                    ? [BoxShadow(color: color.withOpacity(0.4), blurRadius: 12, offset: const Offset(0, 4))]
+                                    ? [BoxShadow(color: color.withOpacity(0.4), blurRadius: 10, offset: const Offset(0, 4))]
                                     : [],
                               ),
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(AppTheme.getWorkoutIcon(t), color: selected ? Colors.white : color, size: 28),
-                                  const SizedBox(height: 8),
+                                  Icon(AppTheme.getWorkoutIcon(t), color: selected ? Colors.white : color, size: 24),
+                                  const SizedBox(height: 6),
                                   Text(
                                     t,
                                     style: TextStyle(
-                                      fontSize: 12,
+                                      fontSize: 10,
                                       color: selected ? Colors.white : (isDark ? kDarkSubtext : kLightSubtext),
                                       fontWeight: selected ? FontWeight.bold : FontWeight.w600,
                                     ),
+                                    textAlign: TextAlign.center,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ],
                               ),

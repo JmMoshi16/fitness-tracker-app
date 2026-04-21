@@ -12,7 +12,7 @@ import 'plate_calculator_screen.dart' hide kGreen, kDeepDark;
 import 'data_export_screen.dart' hide kGreen, kDeepDark;
 import 'exercise_history_screen.dart' hide kGreen, kDeepDark;
 import 'cycling_tracker_screen.dart' hide kGreen, kDeepDark;
-import 'ai_workout_generator_screen.dart' hide kGreen, kDeepDark;
+import 'ai_workout_generator_screen.dart';
 import 'workout_camera_screen.dart' hide kGreen, kDeepDark;
 import 'step_counter_screen.dart';
 import 'nutrition_screen.dart';
@@ -587,8 +587,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _ToolData(Icons.fitness_center_rounded,  'Plates',      'Calculator',const Color(0xFF42A5F5), [Color(0xFF42A5F5), Color(0xFF1565C0)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PlateCalculatorScreen()))),
       _ToolData(Icons.directions_bike_rounded, 'Cycling',     'GPS Track', const Color(0xFF26C6DA), [Color(0xFF26C6DA), Color(0xFF00838F)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CyclingTrackerScreen()))),
       _ToolData(Icons.history_rounded,         'History',     'Exercise',  const Color(0xFFAB47BC), [Color(0xFFAB47BC), Color(0xFF6A1B9A)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExerciseHistoryScreen()))),
-      _ToolData(Icons.add_a_photo_rounded,     'Photos',      'Proof',     const Color(0xFFEF5350), [Color(0xFFEF5350), Color(0xFFB71C1C)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WorkoutCameraScreen()))),
-      _ToolData(Icons.download_rounded,        'Export',      'Data',      const Color(0xFFFF7043), [Color(0xFFFF7043), Color(0xFFBF360C)], () => Navigator.push(context, MaterialPageRoute(builder: (_) => DataExportScreen(workouts: _workouts)))),
     ];
 
     return Padding(
@@ -610,7 +608,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           GestureDetector(
             onTap: () {
               HapticFeedback.mediumImpact();
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const AIWorkoutGeneratorScreen()));
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const WorkoutGeneratorScreen()));
             },
             child: Container(
               width: double.infinity,

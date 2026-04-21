@@ -32,6 +32,8 @@ const kStrength    = Color(0xFF42A5F5);
 const kFlexibility = Color(0xFF66BB6A);
 const kHIIT        = Color(0xFFFF7043);
 const kSports      = Color(0xFFAB47BC);
+const kCycling     = Color(0xFF26C6DA);
+const kRunning     = Color(0xFF66BB6A);
 const kOther       = Color(0xFF78909C);
 
 // Status Colors
@@ -254,9 +256,11 @@ class AppTheme {
     switch (type) {
       case 'Cardio': return kCardio;
       case 'Strength': return kStrength;
-      case 'Flexibility': return kFlexibility;
       case 'HIIT': return kHIIT;
       case 'Sports': return kSports;
+      case 'Cycling': return kCycling;
+      case 'Running': return kRunning;
+      case 'Flexibility': return kFlexibility;
       default: return kOther;
     }
   }
@@ -265,9 +269,10 @@ class AppTheme {
     switch (type) {
       case 'Cardio': return Icons.directions_run_rounded;
       case 'Strength': return Icons.fitness_center_rounded;
-      case 'Flexibility': return Icons.self_improvement_rounded;
       case 'HIIT': return Icons.flash_on_rounded;
       case 'Sports': return Icons.sports_rounded;
+      case 'Cycling': return Icons.directions_bike_rounded;
+      case 'Running': return Icons.directions_run_rounded;
       default: return Icons.sports_gymnastics_rounded;
     }
   }

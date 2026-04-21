@@ -24,14 +24,31 @@ class DBHelper {
   static String? get currentUid => _auth.currentUser?.uid;
 
   static Future<UserModel?> getCurrentUser() async {
-    final uid = _auth.currentUser?.uid;
-    if (uid == null) return null;
-    final doc = await _db.collection('users').doc(uid).get();
-    return doc.exists ? UserModel.fromDoc(doc) : null;
+    try {
+      final uid = _auth.currentUser?.uid;
+      if (uid == null) return null;
+      final doc = await _db.collection('users').doc(uid).get();
+      return doc.exists ? UserModel.fromDoc(doc) : null;
+    } catch (e) {
+      return null;
+    }
   }
 
   static Future<void> updateUser(UserModel user) async {
-    await _db.collection('users').doc(user.uid).update(user.toMap());
+    try {
+      final docRef = _db.collection('users').doc(user.uid);
+      final doc = await docRef.get();
+      
+      if (doc.exists) {
+        await docRef.update(user.toMap());
+      } else {
+        // Create document if it doesn't exist
+        await docRef.set(user.toMap());
+      }
+    } catch (e) {
+      // If update fails, try to create the document
+      await _db.collection('users').doc(user.uid).set(user.toMap());
+    }
   }
 
   // ── Workouts ────────────────────────────────────────────────────────────────
@@ -40,10 +57,14 @@ class DBHelper {
   }
 
   static Future<List<Workout>> getWorkouts(String userId) async {
-    final snap = await _db.collection('workouts').where('userId', isEqualTo: userId).get();
-    final list = snap.docs.map((d) => Workout.fromDoc(d)).toList();
-    list.sort((a, b) => b.date.compareTo(a.date));
-    return list;
+    try {
+      final snap = await _db.collection('workouts').where('userId', isEqualTo: userId).get();
+      final list = snap.docs.map((d) => Workout.fromDoc(d)).toList();
+      list.sort((a, b) => b.date.compareTo(a.date));
+      return list;
+    } catch (e) {
+      return [];
+    }
   }
 
   static Future<void> updateWorkout(Workout w) async {
@@ -61,12 +82,16 @@ class DBHelper {
   }
 
   static Future<List<ExerciseLog>> getExerciseLogs(String userId, {String? exerciseName}) async {
-    Query query = _db.collection('exercise_logs').where('userId', isEqualTo: userId);
-    if (exerciseName != null) query = query.where('exerciseName', isEqualTo: exerciseName);
-    final snap = await query.get();
-    final list = snap.docs.map((d) => ExerciseLog.fromDoc(d)).toList();
-    list.sort((a, b) => b.date.compareTo(a.date));
-    return list;
+    try {
+      Query query = _db.collection('exercise_logs').where('userId', isEqualTo: userId);
+      if (exerciseName != null) query = query.where('exerciseName', isEqualTo: exerciseName);
+      final snap = await query.get();
+      final list = snap.docs.map((d) => ExerciseLog.fromDoc(d)).toList();
+      list.sort((a, b) => b.date.compareTo(a.date));
+      return list;
+    } catch (e) {
+      return [];
+    }
   }
 
   // Get last log for a specific exercise (for pre-filling)
@@ -106,8 +131,12 @@ class DBHelper {
   }
 
   static Future<List<PRRecord>> getPRRecords(String userId) async {
-    final snap = await _db.collection('pr_records').where('userId', isEqualTo: userId).get();
-    return snap.docs.map((d) => PRRecord.fromDoc(d)).toList();
+    try {
+      final snap = await _db.collection('pr_records').where('userId', isEqualTo: userId).get();
+      return snap.docs.map((d) => PRRecord.fromDoc(d)).toList();
+    } catch (e) {
+      return [];
+    }
   }
 
   // ── Workout Templates ───────────────────────────────────────────────────────
@@ -116,8 +145,12 @@ class DBHelper {
   }
 
   static Future<List<WorkoutTemplate>> getTemplates(String userId) async {
-    final snap = await _db.collection('workout_templates').where('userId', isEqualTo: userId).get();
-    return snap.docs.map((d) => WorkoutTemplate.fromDoc(d)).toList();
+    try {
+      final snap = await _db.collection('workout_templates').where('userId', isEqualTo: userId).get();
+      return snap.docs.map((d) => WorkoutTemplate.fromDoc(d)).toList();
+    } catch (e) {
+      return [];
+    }
   }
 
   static Future<void> updateTemplate(WorkoutTemplate t) async {
@@ -134,10 +167,14 @@ class DBHelper {
   }
 
   static Future<List<CyclingSession>> getCyclingSessions(String userId) async {
-    final snap = await _db.collection('cycling_sessions').where('userId', isEqualTo: userId).get();
-    final list = snap.docs.map((d) => CyclingSession.fromDoc(d)).toList();
-    list.sort((a, b) => b.date.compareTo(a.date));
-    return list;
+    try {
+      final snap = await _db.collection('cycling_sessions').where('userId', isEqualTo: userId).get();
+      final list = snap.docs.map((d) => CyclingSession.fromDoc(d)).toList();
+      list.sort((a, b) => b.date.compareTo(a.date));
+      return list;
+    } catch (e) {
+      return [];
+    }
   }
 
   static Future<void> deleteCyclingSession(String id) async {

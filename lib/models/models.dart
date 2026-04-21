@@ -4,15 +4,17 @@ class UserModel {
   final String uid;
   String username;
   String email;
+  String? photoPath;
 
-  UserModel({required this.uid, required this.username, required this.email});
+  UserModel({required this.uid, required this.username, required this.email, this.photoPath});
 
-  Map<String, dynamic> toMap() => {'username': username, 'email': email};
+  Map<String, dynamic> toMap() => {'username': username, 'email': email, 'photoPath': photoPath ?? ''};
 
   factory UserModel.fromDoc(DocumentSnapshot doc) => UserModel(
         uid: doc.id,
         username: doc['username'] ?? '',
         email: doc['email'] ?? '',
+        photoPath: doc['photoPath'] ?? '',
       );
 }
 

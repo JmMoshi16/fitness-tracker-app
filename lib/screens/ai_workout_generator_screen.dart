@@ -1,19 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../db/db_helper.dart';
 import '../models/models.dart';
+import '../theme/app_theme.dart';
+import '../widgets/components.dart';
 
-const kGreen = Color(0xFF8BC34A);
-const kDarkGreen = Color(0xFF558B2F);
-const kDeepDark = Color(0xFF1A1A2E);
-const kCardDark = Color(0xFF16213E);
-
-class AIWorkoutGeneratorScreen extends StatefulWidget {
-  const AIWorkoutGeneratorScreen({super.key});
+class WorkoutGeneratorScreen extends StatefulWidget {
+  const WorkoutGeneratorScreen({super.key});
   @override
-  State<AIWorkoutGeneratorScreen> createState() => _AIWorkoutGeneratorScreenState();
+  State<WorkoutGeneratorScreen> createState() => _WorkoutGeneratorScreenState();
 }
 
-class _AIWorkoutGeneratorScreenState extends State<AIWorkoutGeneratorScreen> {
+class _WorkoutGeneratorScreenState extends State<WorkoutGeneratorScreen> {
   String _goal = 'Muscle Gain';
   String _level = 'Intermediate';
   String _focus = 'Full Body';
@@ -116,9 +114,10 @@ class _AIWorkoutGeneratorScreenState extends State<AIWorkoutGeneratorScreen> {
   }
 
   void _generate() {
+    HapticFeedback.mediumImpact();
     setState(() { _generating = true; _generatedWorkout = null; });
 
-    Future.delayed(const Duration(milliseconds: 1200), () {
+    Future.delayed(const Duration(milliseconds: 800), () {
       final goalData = _workoutDB[_goal] ?? _workoutDB['Muscle Gain']!;
       final focusData = goalData[_focus] ?? goalData.values.first;
 
@@ -134,19 +133,20 @@ class _AIWorkoutGeneratorScreenState extends State<AIWorkoutGeneratorScreen> {
 
   Future<void> _saveAsTemplate() async {
     if (_generatedWorkout == null) return;
+    HapticFeedback.lightImpact();
     final uid = DBHelper.currentUid!;
     final template = WorkoutTemplate(
       userId: uid,
       name: '$_goal - $_focus ($_level)',
       category: _focus,
       exercises: _generatedWorkout!.map((e) => e['name'] as String).toList(),
-      notes: 'AI Generated: $_goal goal, $_level level',
+      notes: 'Generated: $_goal goal, $_level level',
     );
     await DBHelper.insertTemplate(template);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: const Text('Saved as template!'),
-        backgroundColor: kGreen,
+        content: const Text('Saved as template!', style: TextStyle(color: Colors.white)),
+        backgroundColor: kSuccess,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ));
@@ -155,15 +155,18 @@ class _AIWorkoutGeneratorScreenState extends State<AIWorkoutGeneratorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
-      backgroundColor: kDeepDark,
+      backgroundColor: isDark ? kDarkBg : kLightBg,
       appBar: AppBar(
-        backgroundColor: kDeepDark,
+        backgroundColor: isDark ? kDarkBg : kLightBg,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 18),
+          icon: Icon(Icons.arrow_back_ios_new, color: isDark ? kDarkText : kLightText, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('Workout Generator', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text('Workout Generator', style: TextStyle(color: isDark ? kDarkText : kLightText, fontWeight: FontWeight.w700)),
+        elevation: 0,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -171,117 +174,177 @@ class _AIWorkoutGeneratorScreenState extends State<AIWorkoutGeneratorScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // AI badge
+              // Hero banner
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                width: double.infinity,
+                padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(colors: [Color(0xFF7C3AED), Color(0xFF4F46E5)]),
-                  borderRadius: BorderRadius.circular(20),
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF7C3AED), Color(0xFF4F46E5)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF7C3AED).withOpacity(0.3),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
                 ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 16),
-                    SizedBox(width: 6),
-                    Text('AI Powered', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 14),
+                          SizedBox(width: 6),
+                          Text('Smart Generator', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 11)),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Build Your Perfect\nWorkout Plan',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        height: 1.2,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Personalized routines based on your goals and fitness level',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.85),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 32),
 
               // Goal selector
-              _sectionLabel('Your Goal'),
+              SectionHeader(title: 'Your Goal'),
+              const SizedBox(height: 12),
               Wrap(
-                spacing: 8, runSpacing: 8,
-                children: _goals.map((g) => _selectChip(g, _goal == g, () => setState(() => _goal = g))).toList(),
-              ),
-              const SizedBox(height: 20),
-
-              // Level selector
-              _sectionLabel('Fitness Level'),
-              Row(
-                children: _levels.map((l) => Expanded(child: Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: _selectChip(l, _level == l, () => setState(() => _level = l), fullWidth: true),
-                ))).toList(),
-              ),
-              const SizedBox(height: 20),
-
-              // Focus selector
-              _sectionLabel('Workout Focus'),
-              Wrap(
-                spacing: 8, runSpacing: 8,
-                children: _focuses.map((f) => _selectChip(f, _focus == f, () => setState(() => _focus = f))).toList(),
+                spacing: 10, runSpacing: 10,
+                children: _goals.map((g) => _selectChip(g, _goal == g, () => setState(() => _goal = g), isDark)).toList(),
               ),
               const SizedBox(height: 28),
+
+              // Level selector
+              SectionHeader(title: 'Fitness Level'),
+              const SizedBox(height: 12),
+              Row(
+                children: _levels.map((l) => Expanded(child: Padding(
+                  padding: EdgeInsets.only(right: l == _levels.last ? 0 : 10),
+                  child: _levelCard(l, _level == l, () => setState(() => _level = l), isDark),
+                ))).toList(),
+              ),
+              const SizedBox(height: 28),
+
+              // Focus selector
+              SectionHeader(title: 'Workout Focus'),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 10, runSpacing: 10,
+                children: _focuses.map((f) => _selectChip(f, _focus == f, () => setState(() => _focus = f), isDark)).toList(),
+              ),
+              const SizedBox(height: 32),
 
               // Generate button
               SizedBox(
                 width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: _generating ? null : _generate,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF7C3AED),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    elevation: 0,
-                  ),
-                  child: _generating
-                      ? const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                          SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)),
-                          SizedBox(width: 12),
-                          Text('Generating...', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                        ])
-                      : const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                          Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 20),
-                          SizedBox(width: 8),
-                          Text('Generate Workout', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                        ]),
+                child: FitButton(
+                  label: _generating ? 'Generating...' : 'Generate Workout',
+                  icon: Icons.auto_awesome_rounded,
+                  onTap: _generate,
+                  isLoading: _generating,
                 ),
               ),
 
               // Generated workout
               if (_generatedWorkout != null) ...[
-                const SizedBox(height: 28),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('$_goal · $_focus', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                        Text('$_level · ${_generatedWorkout!.length} exercises', style: const TextStyle(color: Colors.white38, fontSize: 12)),
-                      ],
-                    ),
-                    GestureDetector(
-                      onTap: _saveAsTemplate,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(color: kGreen.withOpacity(0.15), borderRadius: BorderRadius.circular(12), border: Border.all(color: kGreen.withOpacity(0.3))),
-                        child: const Row(children: [
-                          Icon(Icons.save_rounded, color: kGreen, size: 16),
-                          SizedBox(width: 6),
-                          Text('Save', style: TextStyle(color: kGreen, fontWeight: FontWeight.bold, fontSize: 12)),
-                        ]),
+                const SizedBox(height: 32),
+                FitCard(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('$_goal Workout', style: TextStyle(color: isDark ? kDarkText : kLightText, fontWeight: FontWeight.w700, fontSize: 18)),
+                                const SizedBox(height: 4),
+                                Text('$_focus · $_level · ${_generatedWorkout!.length} exercises', style: TextStyle(color: isDark ? kDarkSubtext : kLightSubtext, fontSize: 12)),
+                              ],
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: _saveAsTemplate,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: kSuccess.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: kSuccess.withOpacity(0.3)),
+                              ),
+                              child: const Row(
+                                children: [
+                                  Icon(Icons.bookmark_rounded, color: kSuccess, size: 16),
+                                  SizedBox(width: 6),
+                                  Text('Save', style: TextStyle(color: kSuccess, fontWeight: FontWeight.w700, fontSize: 13)),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 20),
+                      ..._generatedWorkout!.asMap().entries.map((e) => _exerciseCard(e.key + 1, e.value, isDark)),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 14),
-                ..._generatedWorkout!.asMap().entries.map((e) => _exerciseCard(e.key + 1, e.value)),
               ],
 
-              // Recent history context
+              // Recent history
               if (_recentWorkouts.isNotEmpty) ...[
-                const SizedBox(height: 24),
-                const Text('Based on your recent activity', style: TextStyle(color: Colors.white38, fontSize: 12)),
-                const SizedBox(height: 8),
+                const SizedBox(height: 32),
+                SectionHeader(title: 'Recent Activity'),
+                const SizedBox(height: 12),
                 Wrap(
                   spacing: 8, runSpacing: 8,
                   children: _recentWorkouts.map((w) => Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white12)),
-                    child: Text(w.type, style: const TextStyle(color: Colors.white38, fontSize: 11)),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: isDark ? kDarkCard : kLightCard,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: isDark ? kDarkBorder : kLightBorder),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(AppTheme.getWorkoutIcon(w.type), size: 12, color: AppTheme.getWorkoutColor(w.type)),
+                        const SizedBox(width: 6),
+                        Text(w.type, style: TextStyle(color: isDark ? kDarkSubtext : kLightSubtext, fontSize: 11, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
                   )).toList(),
                 ),
               ],
@@ -293,67 +356,116 @@ class _AIWorkoutGeneratorScreenState extends State<AIWorkoutGeneratorScreen> {
     );
   }
 
-  Widget _exerciseCard(int num, Map<String, dynamic> e) => Container(
-        margin: const EdgeInsets.only(bottom: 10),
+  Widget _exerciseCard(int num, Map<String, dynamic> e, bool isDark) => Container(
+        margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: kCardDark,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.white.withOpacity(0.07)),
+          color: isDark ? kDarkSurface : kLightSurface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: isDark ? kDarkBorder : kLightBorder),
         ),
         child: Row(
           children: [
             Container(
-              width: 40, height: 40,
+              width: 44, height: 44,
               decoration: BoxDecoration(
                 gradient: const LinearGradient(colors: [Color(0xFF7C3AED), Color(0xFF4F46E5)]),
                 borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF7C3AED).withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
               ),
-              child: Center(child: Text('$num', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+              child: Center(child: Text('$num', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16))),
             ),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(e['name'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-                  Text(e['muscle'], style: const TextStyle(color: Colors.white38, fontSize: 11)),
+                  Text(e['name'], style: TextStyle(color: isDark ? kDarkText : kLightText, fontWeight: FontWeight.w700, fontSize: 14)),
+                  const SizedBox(height: 2),
+                  Text(e['muscle'], style: TextStyle(color: isDark ? kDarkSubtext : kLightSubtext, fontSize: 11, fontWeight: FontWeight.w500)),
                 ],
               ),
             ),
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text('${e['sets']} sets', style: const TextStyle(color: kGreen, fontWeight: FontWeight.bold, fontSize: 13)),
-                Text('${e['reps']} reps', style: const TextStyle(color: Colors.white54, fontSize: 11)),
-                Text('Rest: ${e['rest']}', style: const TextStyle(color: Colors.white24, fontSize: 10)),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: kOrange.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text('${e['sets']} × ${e['reps']}', style: const TextStyle(color: kOrange, fontWeight: FontWeight.w700, fontSize: 12)),
+                ),
+                const SizedBox(height: 4),
+                Text('Rest: ${e['rest']}', style: TextStyle(color: isDark ? kDarkSubtext : kLightSubtext, fontSize: 10)),
               ],
             ),
           ],
         ),
       );
 
-  Widget _sectionLabel(String text) => Padding(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: Text(text, style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
-      );
-
-  Widget _selectChip(String label, bool selected, VoidCallback onTap, {bool fullWidth = false}) => GestureDetector(
-        onTap: onTap,
+  Widget _selectChip(String label, bool selected, VoidCallback onTap, bool isDark) => GestureDetector(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          width: fullWidth ? double.infinity : null,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
-            color: selected ? const Color(0xFF7C3AED) : Colors.white.withOpacity(0.07),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: selected ? const Color(0xFF7C3AED) : Colors.white12),
-            boxShadow: selected ? [BoxShadow(color: const Color(0xFF7C3AED).withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 3))] : [],
+            gradient: selected ? const LinearGradient(colors: [Color(0xFF7C3AED), Color(0xFF4F46E5)]) : null,
+            color: selected ? null : (isDark ? kDarkCard : kLightCard),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: selected ? Colors.transparent : (isDark ? kDarkBorder : kLightBorder)),
+            boxShadow: selected ? [
+              BoxShadow(color: const Color(0xFF7C3AED).withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4)),
+            ] : [],
           ),
-          child: Text(label,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: selected ? Colors.white : Colors.white54,
-                  fontWeight: selected ? FontWeight.bold : FontWeight.normal, fontSize: 13)),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: selected ? Colors.white : (isDark ? kDarkText : kLightText),
+              fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+              fontSize: 13,
+            ),
+          ),
+        ),
+      );
+
+  Widget _levelCard(String label, bool selected, VoidCallback onTap, bool isDark) => GestureDetector(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          decoration: BoxDecoration(
+            gradient: selected ? const LinearGradient(colors: [Color(0xFF7C3AED), Color(0xFF4F46E5)]) : null,
+            color: selected ? null : (isDark ? kDarkCard : kLightCard),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: selected ? Colors.transparent : (isDark ? kDarkBorder : kLightBorder), width: selected ? 0 : 1),
+            boxShadow: selected ? [
+              BoxShadow(color: const Color(0xFF7C3AED).withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4)),
+            ] : [],
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: selected ? Colors.white : (isDark ? kDarkText : kLightText),
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                fontSize: 14,
+              ),
+            ),
+          ),
         ),
       );
 }
